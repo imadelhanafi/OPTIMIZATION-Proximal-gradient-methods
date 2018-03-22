@@ -69,7 +69,7 @@ Under the same hypothesis an accelerated version of the algorithm is given as fo
 
 - Choose an initial points ![equation](https://latex.codecogs.com/svg.latex?u^0=v^0)
 - Do until convergence: 
-  - choose a step ![equation](https://latex.codecogs.com/svg.latex?\epsilon^(k))
+  - choose a step ![equation](https://latex.codecogs.com/svg.latex?\epsilon^{(k)})
   - ![equation](https://latex.codecogs.com/svg.latex?u%5E%7B%28k&plus;1%29%7D%20%26%3D%20%5Cmathcal%7BP%7D_%7B%5Cvarepsilon%5E%7B%28k%29%7DG_%7B%5Clambda%7D%7D%28v%5E%7B%28k%29%7D%20-%20%5Cvarepsilon%5E%7B%28k%29%7D%5Cnabla%20F%28v%5E%7B%28k%29%7D%29%29)
   - ![equation](https://latex.codecogs.com/svg.latex?v%5E%7B%28k&plus;1%29%7D%20%26%3D%20u%5E%7B%28k&plus;1%29%7D%20&plus;%20%28k-1%29/%28k&plus;2%29*%28u%5E%7B%28k&plus;1%29%7D%20-%20u%5E%7B%28k%29%7D%29)
 
