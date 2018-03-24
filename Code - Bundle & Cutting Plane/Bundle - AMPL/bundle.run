@@ -1,0 +1,113 @@
+reset;
+include common.run;
+
+option solver_msg 0;
+
+option xpress_options 'outlev=0';
+option solver cplexamp;
+
+set ITERATIONS default {};
+
+param CUT_RHS{ITERATIONS} default 0;
+param CUT_COEFF{ITERATIONS, 1..nVariables} default 0;
+param CUT_POINT{ITERATIONS, 1..nVariables} default 0;
+
+param ARRET symbolic default 'NON';
+param LB default -1e20;
+param UB default +1e20;
+
+param ITERATION;
+
+param BEST_UB default +1e20;
+
+param tension default 10;
+
+param STEP symbolic default ''; # serious step vs nulle step 
+param COUNT_SS default 0;
+param COUNT_NS default 0;
+
+param x_star{1..nVariables} default 0;
+param eta default 0.1;
+
+
+param PREDICTION default 1;
+param U_BEST default +1e20; 
+param eps default +1e-3;
+
+
+var alpha;
+
+subject to cut{ ite in ITERATIONS}:
+	alpha 
+	>=
+	+CUT_RHS[ite]
+	+sum{i in 1..nVariables}CUT_COEFF[ite, i]*(x[i]-CUT_POINT[ite, i])
+	;
+
+minimize OBJ:+alpha
+		+tension*sum{i in 1..nVariables}((x[i]-x_star[i])^2);
+
+
+
+let ITERATION := 1;
+printf "%6s%20s%20s%20s%20s%20s\n", 'ITE', 'LB', 'UB', 'BEST_UB','SeriousStep','tension';
+
+repeat {
+	# nouvelle iteration
+	let ITERATIONS := ITERATIONS union {ITERATION};
+	# calcul du sous estimateur
+
+	solve > trash.log;
+	let LB := alpha;
+
+	let{i in 1..nVariables}CUT_COEFF[ITERATION, i] := sub_gradient[i]; 
+	let{i in 1..nVariables}CUT_POINT[ITERATION, i] := x[i]; 
+	
+	# BEST_UB = f(x_h*) 
+	# UB = f(x_h)
+
+	let CUT_RHS[ITERATION] := nlp_obj;
+	
+	let UB := nlp_obj;
+	let PREDICTION := LB - U_BEST;
+
+	
+	if (UB - U_BEST < eta*PREDICTION) then {
+		# Serious Step
+		let U_BEST := UB;
+		#let BEST_UB := UB; 
+		let {i in 1..nVariables}x_star[i] := CUT_POINT[ITERATION, i];
+		let STEP := 'SS';
+		let COUNT_NS := 0;
+		let COUNT_SS := COUNT_SS+1;
+		if(COUNT_SS >= 5) then {
+			let tension := 0.1*tension ; # On relache la pénalisation pour explorer ailleurs.
+		};
+
+
+	}else{
+		
+		let STEP := 'NS';
+		let COUNT_SS := 0;
+		let COUNT_NS := COUNT_NS+1;
+		if(COUNT_NS >= 5) then {
+			let tension := 10*tension ; # On augmente la pénalisation pour favoriser l'exploitation
+		};
+
+	};
+
+	#display x;		
+	printf "%6d%20.6f%20.6f%20.6f%10s%20.6f\n", ITERATION, LB, UB, U_BEST, STEP,tension;
+	#printf "%10.6f", alpha;
+	#printf "%10.6f", tension;
+	#expand;
+	
+	if -PREDICTION < eps then {
+		let ARRET := 'OUI';
+	}else{
+		let ITERATION := ITERATION+1;
+	};
+	
+} while ARRET != 'OUI'; 
+
+display x;

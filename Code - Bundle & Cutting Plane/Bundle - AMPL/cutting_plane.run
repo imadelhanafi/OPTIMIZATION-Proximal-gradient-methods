@@ -1,0 +1,67 @@
+reset;
+include common.run;
+
+option solver_msg 0;
+
+option xpress_options 'outlev=0';
+option solver cplexamp;
+
+set ITERATIONS default {};
+
+param CUT_RHS{ITERATIONS} default 0;
+param CUT_COEFF{ITERATIONS, 1..nVariables} default 0;
+param CUT_POINT{ITERATIONS, 1..nVariables} default 0;
+
+param ARRET symbolic default 'NON';
+param LB default -1e20;
+param UB default +1e20;
+
+param ITERATION;
+
+param BEST_UB default +1e20;
+
+var alpha;
+
+subject to cut{ ite in ITERATIONS}:
+	alpha 
+	>=
+	+CUT_RHS[ite]
+	+sum{i in 1..nVariables}CUT_COEFF[ite, i]*(x[i]-CUT_POINT[ite, i])
+	;
+
+minimize OBJ:+alpha;
+
+let ITERATION := 1;
+printf "%6s%20s%20s%20s\n", 'ITE', 'LB', 'UB', 'BEST_UB';
+
+repeat {
+	# nouvelle iteration
+	let ITERATIONS := ITERATIONS union {ITERATION};
+	# calcul du sous estimateur
+	solve > trash.log;
+	let LB := alpha;
+
+	let{i in 1..nVariables}CUT_COEFF[ITERATION, i] := sub_gradient[i];
+	let{i in 1..nVariables}CUT_POINT[ITERATION, i] := x[i];
+	
+	let CUT_RHS[ITERATION] := nlp_obj;
+	
+	let UB := nlp_obj;
+	
+	if UB < BEST_UB then {
+		# Serious Step
+		let BEST_UB := UB; 
+	};
+	#display x;		
+	printf "%6d%20.6f%20.6f%20.6f\n", ITERATION, LB, UB, BEST_UB;
+	#expand;
+	
+	if UB-LB <= 1e-3 then {
+		let ARRET := 'OUI'
+	}else{
+		let ITERATION := ITERATION+1;
+	};
+	
+} while ARRET != 'OUI'; 
+
+display x;

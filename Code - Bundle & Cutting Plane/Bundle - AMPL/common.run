@@ -1,0 +1,58 @@
+reset;
+option randseed 1;
+option presolve 0;
+
+param EPS := 1e-6;
+
+param nVariables := 100;
+param nCassures := 200;#75#150
+
+
+param xMin{i in 1..nVariables} := -10*i;
+param xMax{i in 1..nVariables} := +10*i;
+
+
+
+var x{i in 1..nVariables} >= xMin[i], <= xMax[i];
+
+param X{1..nVariables, 1..nCassures};
+###
+# data generation : random point to create singularities
+###
+let{i in 1..nVariables, j in 1..nCassures} X[i,j] := xMin[i]+Uniform01()*(xMax[i]-xMin[i]);
+
+#display X;
+
+var nlp_obj = 
+	sum{i in 1..nVariables}(1/nVariables)*(
+		+x[i]
+		+
+		(1/nCassures)
+		*
+		sum{j in 1..nCassures}j*(
+			if x[i]- X[i,j] < -EPS then 
+				-2*(x[i]- X[i,j])
+			else if x[i] - X[i,j] > +EPS then
+				+3*(x[i]- X[i,j])
+			else
+				0
+		)
+	)
+	;
+
+var sub_gradient{i in 1..nVariables} =
+		(1/nVariables)
+		*
+		(
+			+1
+			+(1/nCassures)
+			*
+			sum{j in 1..nCassures} j * (
+				if x[i]- X[i,j] < -EPS then 
+					-2
+				else if x[i] - X[i,j] > +EPS then
+					+3
+				else
+					0
+				)
+		)	;

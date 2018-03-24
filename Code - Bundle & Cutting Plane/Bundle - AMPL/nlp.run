@@ -1,0 +1,26 @@
+reset;
+include common.run;
+
+option solver knitroampl;
+option knitro_options 'outlev=3 presolve=0 alg=3 ms_enable=0';
+
+param xNLP{1..nVariables};
+param xLP{1..nVariables};
+param xNLPFROMLP{1..nVariables};
+
+param objNLP;
+param objLP;
+param objNLPFROMLP;
+
+minimize OBJ_NLP:
+	nlp_obj;
+	
+
+###
+# resolution
+###
+solve > nlp.log;
+let{i in 1..nVariables} xNLP[i] := x[i];
+let objNLP := OBJ_NLP; 
+display OBJ_NLP;
+display xNLP;
